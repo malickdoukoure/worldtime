@@ -100,10 +100,7 @@
     overflow: hidden;
   }
   .card:hover { background: var(--highlight); }
-  .card.me {
-    background: var(--ink);
-    color: var(--bg);
-  }
+  .card.me { background: var(--ink); color: var(--bg); }
   .card.me:hover { background: #2a1e08; }
   .card.me .card-country { color: #4ade80; }
   .card.me .card-offset, .card.me .card-date, .card.me .card-tz { color: rgba(245,240,232,0.45); }
@@ -194,6 +191,97 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
   }
+
+  /* ── Contact footer ── */
+  .contact-section {
+    margin-top: 60px;
+    border-top: 2px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .contact-left {
+    padding: 48px 40px;
+    border-right: 1px solid var(--border);
+  }
+  .contact-right { padding: 48px 40px; }
+  .contact-title {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 3rem;
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+    margin-bottom: 16px;
+  }
+  .contact-title span { color: var(--accent); }
+  .contact-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.8;
+  }
+  .contact-form { display: flex; flex-direction: column; gap: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .form-input, .form-textarea {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+    width: 100%;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: var(--ink); }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--muted); }
+  .form-textarea { height: 110px; }
+  .form-submit {
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    padding: 12px 28px;
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.2s;
+    align-self: flex-start;
+  }
+  .form-submit:hover { background: var(--accent); }
+  .form-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-success {
+    display: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 0;
+  }
+  .form-success.show { display: block; }
+  .contact-bottom {
+    grid-column: 1/-1;
+    padding: 18px 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
   @media (max-width: 640px) {
     header { padding: 14px 18px; }
     #search { width: 200px; }
@@ -203,6 +291,11 @@
     .card { padding: 14px; }
     .card-time { font-size: 2rem; }
     .visitors-bar { padding: 12px 18px; }
+    .contact-section { grid-template-columns: 1fr; }
+    .contact-left { border-right: none; border-bottom: 1px solid var(--border); padding: 32px 18px; }
+    .contact-right { padding: 32px 18px; }
+    .form-row { grid-template-columns: 1fr; }
+    .contact-bottom { padding: 14px 18px; flex-direction: column; gap: 6px; }
   }
 </style>
 </head>
@@ -256,6 +349,43 @@
 </div>
 
 <div class="grid" id="grid"></div>
+
+<!-- Contact -->
+<section class="contact-section" id="contact">
+  <div class="contact-left">
+    <div class="contact-title">Contacter<br>le <span>Dev</span></div>
+    <div class="contact-sub">
+      Une idée ?<br>
+      Un bug ?<br>
+      Une suggestion ?<br>
+      Écris-moi directement.
+    </div>
+  </div>
+  <div class="contact-right">
+    <form class="contact-form" id="contact-form">
+      <div class="form-row">
+        <div class="form-field">
+          <label class="form-label">Nom</label>
+          <input class="form-input" type="text" name="name" placeholder="Ton nom" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" name="email" placeholder="ton@email.com" required>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Message</label>
+        <textarea class="form-textarea" name="message" placeholder="Ton message..." required></textarea>
+      </div>
+      <button class="form-submit" type="submit">Envoyer →</button>
+      <div class="form-success" id="form-success">✓ Message envoyé ! Je te réponds bientôt.</div>
+    </form>
+  </div>
+  <div class="contact-bottom">
+    <span>© 2025 WorldTime</span>
+    <span>Fait avec ♥ et JavaScript</span>
+  </div>
+</section>
 
 <script>
 const COUNTRIES = [
@@ -371,7 +501,7 @@ const COUNTRIES = [
   { name:"Polynésie Fr.", flag:"🇵🇫", tz:"Pacific/Tahiti", region:"Océanie", code:"PF" },
 ];
 
-// ─── Supabase ────────────────────────────────────────────
+// ─── Supabase ─────────────────────────────────────────────
 const SUPABASE_URL = "https://dphtlyrjgzgctcjzbzaf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_ydPg-wmTyUhq9fweC_JwUw_WFZx1nf_";
 
@@ -394,29 +524,18 @@ async function registerVisit() {
   const flag = match ? match.flag : "🌍";
   await sbFetch("visitors", {
     method: "POST",
-    body: JSON.stringify({
-      country: myName,
-      country_code: myCode,
-      flag: flag,
-      timezone: myTz
-    })
+    body: JSON.stringify({ country: myName, country_code: myCode, flag, timezone: myTz })
   });
 }
 
 async function loadVisitors() {
   try {
-    // Total count
-    const countRes = await sbFetch("visitors?select=id", {
-      headers: { "Prefer": "count=exact" }
-    });
+    const countRes = await sbFetch("visitors?select=id", { headers: { "Prefer": "count=exact" } });
     const total = countRes.headers.get("content-range")?.split("/")?.[1] || "0";
     document.getElementById("visit-count").textContent = Number(total).toLocaleString("fr-FR");
 
-    // Recent unique countries (last 50 visits)
     const res = await sbFetch("visitors?select=flag,country,country_code&order=visited_at.desc&limit=50");
     const data = await res.json();
-
-    // Deduplicate by country_code
     const seen = new Set();
     const unique = data.filter(v => {
       if (seen.has(v.country_code)) return false;
@@ -430,34 +549,48 @@ async function loadVisitors() {
       return;
     }
     list.innerHTML = unique.map(v => `
-      <div class="visitor-chip">
-        <span class="chip-flag">${v.flag}</span>
-        <span>${v.country}</span>
-      </div>
+      <div class="visitor-chip"><span class="chip-flag">${v.flag}</span><span>${v.country}</span></div>
     `).join("");
-  } catch(e) {
-    console.error("Supabase error:", e);
-  }
+  } catch(e) { console.error("Supabase error:", e); }
 }
 
+// ─── Contact Form ─────────────────────────────────────────
+document.getElementById("contact-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector(".form-submit");
+  btn.disabled = true;
+  btn.textContent = "Envoi...";
+  try {
+    const res = await fetch("https://formspree.io/f/mgolrnyb", {
+      method: "POST",
+      headers: { "Accept": "application/json" },
+      body: new FormData(e.target)
+    });
+    if (res.ok) {
+      e.target.reset();
+      document.getElementById("form-success").classList.add("show");
+    } else {
+      btn.textContent = "Erreur, réessaie";
+    }
+    btn.disabled = false;
+    btn.textContent = "Envoyer →";
+  } catch {
+    btn.textContent = "Erreur, réessaie";
+    btn.disabled = false;
+  }
+});
 
+// ─── State ────────────────────────────────────────────────
+let myCode = null;
 let myTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let myName = "";
 let currentFilter = "all";
 let searchQuery = "";
 let liveCards = [];
 
-function fmt(tz, opts) {
-  return new Date().toLocaleString("fr-FR", { timeZone: tz, ...opts });
-}
-
-function getTime(tz) {
-  return fmt(tz, { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
-}
-
-function getDate(tz) {
-  return fmt(tz, { weekday:"long", day:"numeric", month:"long" });
-}
+function fmt(tz, opts) { return new Date().toLocaleString("fr-FR", { timeZone: tz, ...opts }); }
+function getTime(tz) { return fmt(tz, { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false }); }
+function getDate(tz) { return fmt(tz, { weekday:"long", day:"numeric", month:"long" }); }
 
 function getOffset(tz) {
   const d = new Date();
@@ -477,9 +610,7 @@ function getDayPct(tz) {
   return ((tzDate.getHours() + tzDate.getMinutes()/60) / 24) * 100;
 }
 
-function isMe(c) {
-  return myCode && c.code === myCode;
-}
+function isMe(c) { return myCode && c.code === myCode; }
 
 async function detectLocation() {
   try {
@@ -506,23 +637,17 @@ function buildGrid() {
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
   liveCards = [];
-
   let list = COUNTRIES.filter(c => {
     const r = currentFilter === "all" || c.region === currentFilter;
     const s = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase());
     return r && s;
   });
-
-  // My country first
   list.sort((a,b) => (isMe(a) ? -1 : isMe(b) ? 1 : 0));
-
   document.getElementById("count").textContent = list.length + " pays";
-
   if (!list.length) {
     grid.innerHTML = `<div class="empty-state">Aucun résultat pour "${searchQuery}"</div>`;
     return;
   }
-
   list.forEach(c => {
     const div = document.createElement("div");
     div.className = "card" + (isMe(c) ? " me" : "");
@@ -575,7 +700,7 @@ document.getElementById("search").addEventListener("input", e => {
   await registerVisit();
   await loadVisitors();
   setInterval(tick, 1000);
-  setInterval(loadVisitors, 15000); // refresh visitors every 15s
+  setInterval(loadVisitors, 15000);
 })();
 </script>
 </body>
