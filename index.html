@@ -342,7 +342,7 @@ async function detectLocation() {
     myCode = data.country_code;
     myTz = data.timezone || myTz;
     myName = data.country_name || "";
-    document.getElementById("my-location").innerHTML = `📍 Vous êtes en : <strong>${myName}</strong>`;
+    document.getElementById("my-location").innerHTML = `📍 Vous êtes ici : <strong>${myName}</strong>`;
   } catch {
     document.getElementById("my-location").innerHTML = `📍 <strong>${myTz}</strong>`;
   }
