@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldTime — Horaires Mondiaux</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --ink: #1a1208;
+    --muted: #8a7a60;
+    --accent: #c8410a;
+    --accent2: #1a6b3c;
+    --surface: #ede8de;
+    --border: #d4c9b0;
+    --highlight: #fff9ee;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.5;
+  }
+  header {
+    padding: 24px 40px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--ink);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .logo { font-family: 'Bebas Neue', cursive; font-size: 2rem; letter-spacing: 0.05em; color: var(--ink); line-height: 1; }
+  .logo span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  #my-location { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  #my-location strong { color: var(--accent); font-weight: 500; }
+  .search-wrap { position: relative; }
+  #search {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    padding: 9px 16px 9px 38px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--ink);
+    width: 260px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #search:focus { border-color: var(--ink); }
+  #search::placeholder { color: var(--muted); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 0.9rem; }
+  .hero {
+    padding: 48px 40px 32px;
+    display: flex;
+    align-items: flex-end;
+    gap: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-time { font-family: 'Bebas Neue', cursive; font-size: clamp(5rem, 12vw, 9rem); line-height: 0.88; letter-spacing: -0.01em; }
+  .hero-info { padding-bottom: 10px; }
+  .hero-country { font-size: 1rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .hero-date { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .hero-tz { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); margin-top: 5px; }
+  .filters { padding: 18px 40px; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+  .filter-btn {
+    padding: 6px 13px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  .grid-header { padding: 18px 40px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .grid-title { font-family: 'Bebas Neue', cursive; font-size: 1.3rem; letter-spacing: 0.05em; color: var(--muted); }
+  .count { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .card {
+    padding: 22px 26px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover { background: var(--highlight); }
+  .card.me {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .card.me:hover { background: #2a1e08; }
+  .card.me .card-country { color: #4ade80; }
+  .card.me .card-offset, .card.me .card-date, .card.me .card-tz { color: rgba(245,240,232,0.45); }
+  .card.me .you-badge { display: inline-block; }
+  .you-badge {
+    display: none;
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    margin-left: 7px;
+    vertical-align: middle;
+  }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+  .card-flag { font-size: 1.5rem; line-height: 1; }
+  .card-offset { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); text-transform: uppercase; padding-top: 4px; }
+  .card-country { font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent2); margin-bottom: 2px; }
+  .card-time { font-family: 'Bebas Neue', cursive; font-size: 2.6rem; line-height: 1; letter-spacing: 0.02em; margin-bottom: 3px; }
+  .card-date { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .card-tz { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--border); margin-top: 7px; }
+  .day-bar { height: 2px; background: var(--border); margin-top: 10px; overflow: hidden; }
+  .day-fill { height: 100%; background: var(--accent); transition: width 1s linear; }
+  .card.me .day-bar { background: rgba(255,255,255,0.1); }
+  .empty-state { grid-column: 1/-1; padding: 80px 40px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  @media (max-width: 640px) {
+    header { padding: 14px 18px; }
+    #search { width: 200px; }
+    .hero { padding: 28px 18px; flex-direction: column; gap: 10px; }
+    .filters, .grid-header { padding-left: 18px; padding-right: 18px; }
+    .grid { grid-template-columns: 1fr 1fr; }
+    .card { padding: 14px; }
+    .card-time { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">World<span>Time</span></div>
+  <div class="header-right">
+    <div id="my-location">📍 Détection...</div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search" placeholder="Rechercher un pays...">
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-time" id="hero-time">--:--:--</div>
+  <div class="hero-info">
+    <div class="hero-country" id="hero-country">Détection en cours...</div>
+    <div class="hero-date" id="hero-date"></div>
+    <div class="hero-tz" id="hero-tz"></div>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" data-region="all">Tous</button>
+  <button class="filter-btn" data-region="Europe">Europe</button>
+  <button class="filter-btn" data-region="Amérique">Amérique</button>
+  <button class="filter-btn" data-region="Asie">Asie</button>
+  <button class="filter-btn" data-region="Afrique">Afrique</button>
+  <button class="filter-btn" data-region="Océanie">Océanie</button>
+</div>
+
+<div class="grid-header">
+  <div class="grid-title">Horaires du monde</div>
+  <div class="count" id="count"></div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const COUNTRIES = [
+  // Europe
+  { name:"France", flag:"🇫🇷", tz:"Europe/Paris", region:"Europe", code:"FR" },
+  { name:"Allemagne", flag:"🇩🇪", tz:"Europe/Berlin", region:"Europe", code:"DE" },
+  { name:"Espagne", flag:"🇪🇸", tz:"Europe/Madrid", region:"Europe", code:"ES" },
+  { name:"Italie", flag:"🇮🇹", tz:"Europe/Rome", region:"Europe", code:"IT" },
+  { name:"Royaume-Uni", flag:"🇬🇧", tz:"Europe/London", region:"Europe", code:"GB" },
+  { name:"Portugal", flag:"🇵🇹", tz:"Europe/Lisbon", region:"Europe", code:"PT" },
+  { name:"Pays-Bas", flag:"🇳🇱", tz:"Europe/Amsterdam", region:"Europe", code:"NL" },
+  { name:"Belgique", flag:"🇧🇪", tz:"Europe/Brussels", region:"Europe", code:"BE" },
+  { name:"Suisse", flag:"🇨🇭", tz:"Europe/Zurich", region:"Europe", code:"CH" },
+  { name:"Autriche", flag:"🇦🇹", tz:"Europe/Vienna", region:"Europe", code:"AT" },
+  { name:"Suède", flag:"🇸🇪", tz:"Europe/Stockholm", region:"Europe", code:"SE" },
+  { name:"Norvège", flag:"🇳🇴", tz:"Europe/Oslo", region:"Europe", code:"NO" },
+  { name:"Danemark", flag:"🇩🇰", tz:"Europe/Copenhagen", region:"Europe", code:"DK" },
+  { name:"Finlande", flag:"🇫🇮", tz:"Europe/Helsinki", region:"Europe", code:"FI" },
+  { name:"Pologne", flag:"🇵🇱", tz:"Europe/Warsaw", region:"Europe", code:"PL" },
+  { name:"Tchéquie", flag:"🇨🇿", tz:"Europe/Prague", region:"Europe", code:"CZ" },
+  { name:"Hongrie", flag:"🇭🇺", tz:"Europe/Budapest", region:"Europe", code:"HU" },
+  { name:"Roumanie", flag:"🇷🇴", tz:"Europe/Bucharest", region:"Europe", code:"RO" },
+  { name:"Grèce", flag:"🇬🇷", tz:"Europe/Athens", region:"Europe", code:"GR" },
+  { name:"Ukraine", flag:"🇺🇦", tz:"Europe/Kiev", region:"Europe", code:"UA" },
+  { name:"Russie", flag:"🇷🇺", tz:"Europe/Moscow", region:"Europe", code:"RU" },
+  { name:"Turquie", flag:"🇹🇷", tz:"Europe/Istanbul", region:"Europe", code:"TR" },
+  { name:"Irlande", flag:"🇮🇪", tz:"Europe/Dublin", region:"Europe", code:"IE" },
+  { name:"Serbie", flag:"🇷🇸", tz:"Europe/Belgrade", region:"Europe", code:"RS" },
+  { name:"Croatie", flag:"🇭🇷", tz:"Europe/Zagreb", region:"Europe", code:"HR" },
+  { name:"Bulgarie", flag:"🇧🇬", tz:"Europe/Sofia", region:"Europe", code:"BG" },
+  { name:"Islande", flag:"🇮🇸", tz:"Atlantic/Reykjavik", region:"Europe", code:"IS" },
+  { name:"Luxembourg", flag:"🇱🇺", tz:"Europe/Luxembourg", region:"Europe", code:"LU" },
+  { name:"Slovaquie", flag:"🇸🇰", tz:"Europe/Bratislava", region:"Europe", code:"SK" },
+  // Amérique
+  { name:"Canada (Est)", flag:"🇨🇦", tz:"America/Toronto", region:"Amérique", code:"CA" },
+  { name:"Canada (Ouest)", flag:"🇨🇦", tz:"America/Vancouver", region:"Amérique", code:"CA" },
+  { name:"États-Unis (Est)", flag:"🇺🇸", tz:"America/New_York", region:"Amérique", code:"US" },
+  { name:"États-Unis (Central)", flag:"🇺🇸", tz:"America/Chicago", region:"Amérique", code:"US" },
+  { name:"États-Unis (Ouest)", flag:"🇺🇸", tz:"America/Los_Angeles", region:"Amérique", code:"US" },
+  { name:"Mexique", flag:"🇲🇽", tz:"America/Mexico_City", region:"Amérique", code:"MX" },
+  { name:"Brésil", flag:"🇧🇷", tz:"America/Sao_Paulo", region:"Amérique", code:"BR" },
+  { name:"Argentine", flag:"🇦🇷", tz:"America/Argentina/Buenos_Aires", region:"Amérique", code:"AR" },
+  { name:"Colombie", flag:"🇨🇴", tz:"America/Bogota", region:"Amérique", code:"CO" },
+  { name:"Chili", flag:"🇨🇱", tz:"America/Santiago", region:"Amérique", code:"CL" },
+  { name:"Pérou", flag:"🇵🇪", tz:"America/Lima", region:"Amérique", code:"PE" },
+  { name:"Venezuela", flag:"🇻🇪", tz:"America/Caracas", region:"Amérique", code:"VE" },
+  { name:"Cuba", flag:"🇨🇺", tz:"America/Havana", region:"Amérique", code:"CU" },
+  { name:"Équateur", flag:"🇪🇨", tz:"America/Guayaquil", region:"Amérique", code:"EC" },
+  { name:"Bolivie", flag:"🇧🇴", tz:"America/La_Paz", region:"Amérique", code:"BO" },
+  { name:"Uruguay", flag:"🇺🇾", tz:"America/Montevideo", region:"Amérique", code:"UY" },
+  { name:"Paraguay", flag:"🇵🇾", tz:"America/Asuncion", region:"Amérique", code:"PY" },
+  { name:"Jamaïque", flag:"🇯🇲", tz:"America/Jamaica", region:"Amérique", code:"JM" },
+  { name:"Haïti", flag:"🇭🇹", tz:"America/Port-au-Prince", region:"Amérique", code:"HT" },
+  { name:"Costa Rica", flag:"🇨🇷", tz:"America/Costa_Rica", region:"Amérique", code:"CR" },
+  { name:"Panama", flag:"🇵🇦", tz:"America/Panama", region:"Amérique", code:"PA" },
+  // Asie
+  { name:"Chine", flag:"🇨🇳", tz:"Asia/Shanghai", region:"Asie", code:"CN" },
+  { name:"Japon", flag:"🇯🇵", tz:"Asia/Tokyo", region:"Asie", code:"JP" },
+  { name:"Inde", flag:"🇮🇳", tz:"Asia/Kolkata", region:"Asie", code:"IN" },
+  { name:"Corée du Sud", flag:"🇰🇷", tz:"Asia/Seoul", region:"Asie", code:"KR" },
+  { name:"Indonésie", flag:"🇮🇩", tz:"Asia/Jakarta", region:"Asie", code:"ID" },
+  { name:"Thaïlande", flag:"🇹🇭", tz:"Asia/Bangkok", region:"Asie", code:"TH" },
+  { name:"Vietnam", flag:"🇻🇳", tz:"Asia/Ho_Chi_Minh", region:"Asie", code:"VN" },
+  { name:"Philippines", flag:"🇵🇭", tz:"Asia/Manila", region:"Asie", code:"PH" },
+  { name:"Malaisie", flag:"🇲🇾", tz:"Asia/Kuala_Lumpur", region:"Asie", code:"MY" },
+  { name:"Singapour", flag:"🇸🇬", tz:"Asia/Singapore", region:"Asie", code:"SG" },
+  { name:"Pakistan", flag:"🇵🇰", tz:"Asia/Karachi", region:"Asie", code:"PK" },
+  { name:"Bangladesh", flag:"🇧🇩", tz:"Asia/Dhaka", region:"Asie", code:"BD" },
+  { name:"Iran", flag:"🇮🇷", tz:"Asia/Tehran", region:"Asie", code:"IR" },
+  { name:"Irak", flag:"🇮🇶", tz:"Asia/Baghdad", region:"Asie", code:"IQ" },
+  { name:"Arabie Saoudite", flag:"🇸🇦", tz:"Asia/Riyadh", region:"Asie", code:"SA" },
+  { name:"Émirats Arabes Unis", flag:"🇦🇪", tz:"Asia/Dubai", region:"Asie", code:"AE" },
+  { name:"Israël", flag:"🇮🇱", tz:"Asia/Jerusalem", region:"Asie", code:"IL" },
+  { name:"Kazakhstan", flag:"🇰🇿", tz:"Asia/Almaty", region:"Asie", code:"KZ" },
+  { name:"Myanmar", flag:"🇲🇲", tz:"Asia/Rangoon", region:"Asie", code:"MM" },
+  { name:"Népal", flag:"🇳🇵", tz:"Asia/Kathmandu", region:"Asie", code:"NP" },
+  { name:"Sri Lanka", flag:"🇱🇰", tz:"Asia/Colombo", region:"Asie", code:"LK" },
+  { name:"Qatar", flag:"🇶🇦", tz:"Asia/Qatar", region:"Asie", code:"QA" },
+  { name:"Koweït", flag:"🇰🇼", tz:"Asia/Kuwait", region:"Asie", code:"KW" },
+  { name:"Jordanie", flag:"🇯🇴", tz:"Asia/Amman", region:"Asie", code:"JO" },
+  { name:"Liban", flag:"🇱🇧", tz:"Asia/Beirut", region:"Asie", code:"LB" },
+  { name:"Géorgie", flag:"🇬🇪", tz:"Asia/Tbilisi", region:"Asie", code:"GE" },
+  { name:"Arménie", flag:"🇦🇲", tz:"Asia/Yerevan", region:"Asie", code:"AM" },
+  { name:"Azerbaïdjan", flag:"🇦🇿", tz:"Asia/Baku", region:"Asie", code:"AZ" },
+  { name:"Taïwan", flag:"🇹🇼", tz:"Asia/Taipei", region:"Asie", code:"TW" },
+  { name:"Hong Kong", flag:"🇭🇰", tz:"Asia/Hong_Kong", region:"Asie", code:"HK" },
+  // Afrique
+  { name:"Nigeria", flag:"🇳🇬", tz:"Africa/Lagos", region:"Afrique", code:"NG" },
+  { name:"Égypte", flag:"🇪🇬", tz:"Africa/Cairo", region:"Afrique", code:"EG" },
+  { name:"Afrique du Sud", flag:"🇿🇦", tz:"Africa/Johannesburg", region:"Afrique", code:"ZA" },
+  { name:"Éthiopie", flag:"🇪🇹", tz:"Africa/Addis_Ababa", region:"Afrique", code:"ET" },
+  { name:"Kenya", flag:"🇰🇪", tz:"Africa/Nairobi", region:"Afrique", code:"KE" },
+  { name:"Ghana", flag:"🇬🇭", tz:"Africa/Accra", region:"Afrique", code:"GH" },
+  { name:"Maroc", flag:"🇲🇦", tz:"Africa/Casablanca", region:"Afrique", code:"MA" },
+  { name:"Algérie", flag:"🇩🇿", tz:"Africa/Algiers", region:"Afrique", code:"DZ" },
+  { name:"Tunisie", flag:"🇹🇳", tz:"Africa/Tunis", region:"Afrique", code:"TN" },
+  { name:"Sénégal", flag:"🇸🇳", tz:"Africa/Dakar", region:"Afrique", code:"SN" },
+  { name:"Côte d'Ivoire", flag:"🇨🇮", tz:"Africa/Abidjan", region:"Afrique", code:"CI" },
+  { name:"Cameroun", flag:"🇨🇲", tz:"Africa/Douala", region:"Afrique", code:"CM" },
+  { name:"Tanzanie", flag:"🇹🇿", tz:"Africa/Dar_es_Salaam", region:"Afrique", code:"TZ" },
+  { name:"Angola", flag:"🇦🇴", tz:"Africa/Luanda", region:"Afrique", code:"AO" },
+  { name:"Madagascar", flag:"🇲🇬", tz:"Indian/Antananarivo", region:"Afrique", code:"MG" },
+  { name:"Soudan", flag:"🇸🇩", tz:"Africa/Khartoum", region:"Afrique", code:"SD" },
+  { name:"Libye", flag:"🇱🇾", tz:"Africa/Tripoli", region:"Afrique", code:"LY" },
+  { name:"Mozambique", flag:"🇲🇿", tz:"Africa/Maputo", region:"Afrique", code:"MZ" },
+  // Océanie
+  { name:"Australie (Sydney)", flag:"🇦🇺", tz:"Australia/Sydney", region:"Océanie", code:"AU" },
+  { name:"Australie (Perth)", flag:"🇦🇺", tz:"Australia/Perth", region:"Océanie", code:"AU" },
+  { name:"Nouvelle-Zélande", flag:"🇳🇿", tz:"Pacific/Auckland", region:"Océanie", code:"NZ" },
+  { name:"Fidji", flag:"🇫🇯", tz:"Pacific/Fiji", region:"Océanie", code:"FJ" },
+  { name:"Papouasie-N.-G.", flag:"🇵🇬", tz:"Pacific/Port_Moresby", region:"Océanie", code:"PG" },
+  { name:"Hawaii", flag:"🇺🇸", tz:"Pacific/Honolulu", region:"Océanie", code:"US" },
+  { name:"Polynésie Fr.", flag:"🇵🇫", tz:"Pacific/Tahiti", region:"Océanie", code:"PF" },
+];
+
+let myCode = null;
+let myTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+let myName = "";
+let currentFilter = "all";
+let searchQuery = "";
+let liveCards = [];
+
+function fmt(tz, opts) {
+  return new Date().toLocaleString("fr-FR", { timeZone: tz, ...opts });
+}
+
+function getTime(tz) {
+  return fmt(tz, { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false });
+}
+
+function getDate(tz) {
+  return fmt(tz, { weekday:"long", day:"numeric", month:"long" });
+}
+
+function getOffset(tz) {
+  const d = new Date();
+  const tzDate = new Date(d.toLocaleString("en-US", { timeZone: tz }));
+  const utcDate = new Date(d.toLocaleString("en-US", { timeZone: "UTC" }));
+  const diff = (tzDate - utcDate) / 3600000;
+  const sign = diff >= 0 ? "+" : "-";
+  const abs = Math.abs(diff);
+  const h = Math.floor(abs);
+  const m = Math.round((abs - h) * 60);
+  return `UTC${sign}${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+}
+
+function getDayPct(tz) {
+  const d = new Date();
+  const tzDate = new Date(d.toLocaleString("en-US", { timeZone: tz }));
+  return ((tzDate.getHours() + tzDate.getMinutes()/60) / 24) * 100;
+}
+
+function isMe(c) {
+  return myCode && c.code === myCode;
+}
+
+async function detectLocation() {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    const data = await res.json();
+    myCode = data.country_code;
+    myTz = data.timezone || myTz;
+    myName = data.country_name || "";
+    document.getElementById("my-location").innerHTML = `📍 Vous êtes en : <strong>${myName}</strong>`;
+  } catch {
+    document.getElementById("my-location").innerHTML = `📍 <strong>${myTz}</strong>`;
+  }
+}
+
+function updateHero() {
+  document.getElementById("hero-time").textContent = getTime(myTz);
+  document.getElementById("hero-date").textContent = getDate(myTz);
+  document.getElementById("hero-tz").textContent = getOffset(myTz) + " — " + myTz;
+  const match = COUNTRIES.find(c => c.tz === myTz) || COUNTRIES.find(c => c.code === myCode);
+  document.getElementById("hero-country").textContent = match ? match.flag + " " + match.name : (myName || myTz);
+}
+
+function buildGrid() {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  liveCards = [];
+
+  let list = COUNTRIES.filter(c => {
+    const r = currentFilter === "all" || c.region === currentFilter;
+    const s = !searchQuery || c.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return r && s;
+  });
+
+  // My country first
+  list.sort((a,b) => (isMe(a) ? -1 : isMe(b) ? 1 : 0));
+
+  document.getElementById("count").textContent = list.length + " pays";
+
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty-state">Aucun résultat pour "${searchQuery}"</div>`;
+    return;
+  }
+
+  list.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "card" + (isMe(c) ? " me" : "");
+    div.innerHTML = `
+      <div class="card-top">
+        <span class="card-flag">${c.flag}</span>
+        <span class="card-offset">${getOffset(c.tz)}</span>
+      </div>
+      <div class="card-country">${c.name}<span class="you-badge">Vous ici</span></div>
+      <div class="card-time">${getTime(c.tz)}</div>
+      <div class="card-date">${getDate(c.tz)}</div>
+      <div class="card-tz">${c.tz}</div>
+      <div class="day-bar"><div class="day-fill" style="width:${getDayPct(c.tz)}%"></div></div>
+    `;
+    grid.appendChild(div);
+    liveCards.push({ el: div, tz: c.tz });
+  });
+}
+
+function tick() {
+  updateHero();
+  liveCards.forEach(({ el, tz }) => {
+    const t = el.querySelector(".card-time");
+    const d = el.querySelector(".card-date");
+    const f = el.querySelector(".day-fill");
+    if (t) t.textContent = getTime(tz);
+    if (d) d.textContent = getDate(tz);
+    if (f) f.style.width = getDayPct(tz) + "%";
+  });
+}
+
+document.querySelectorAll(".filter-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentFilter = btn.dataset.region;
+    buildGrid();
+  });
+});
+
+document.getElementById("search").addEventListener("input", e => {
+  searchQuery = e.target.value;
+  buildGrid();
+});
+
+(async () => {
+  await detectLocation();
+  updateHero();
+  buildGrid();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
