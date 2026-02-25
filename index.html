@@ -131,6 +131,69 @@
   .day-fill { height: 100%; background: var(--accent); transition: width 1s linear; }
   .card.me .day-bar { background: rgba(255,255,255,0.1); }
   .empty-state { grid-column: 1/-1; padding: 80px 40px; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  /* Visitors panel */
+  .visitors-bar {
+    padding: 14px 40px;
+    background: var(--ink);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--accent);
+  }
+  .visitors-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(245,240,232,0.5);
+    white-space: nowrap;
+  }
+  .visitors-count {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.5rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .visitors-sep {
+    width: 1px;
+    height: 24px;
+    background: rgba(245,240,232,0.15);
+  }
+  .visitors-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+  .visitor-chip {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 3px 10px;
+    border: 1px solid rgba(245,240,232,0.15);
+    color: rgba(245,240,232,0.75);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    animation: chipIn 0.4s ease;
+  }
+  @keyframes chipIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .visitor-chip .chip-flag { font-size: 0.9rem; }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
   @media (max-width: 640px) {
     header { padding: 14px 18px; }
     #search { width: 200px; }
@@ -139,6 +202,7 @@
     .grid { grid-template-columns: 1fr 1fr; }
     .card { padding: 14px; }
     .card-time { font-size: 2rem; }
+    .visitors-bar { padding: 12px 18px; }
   }
 </style>
 </head>
@@ -161,6 +225,19 @@
     <div class="hero-country" id="hero-country">Détection en cours...</div>
     <div class="hero-date" id="hero-date"></div>
     <div class="hero-tz" id="hero-tz"></div>
+  </div>
+</div>
+
+<div class="visitors-bar">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <div class="live-dot"></div>
+    <span class="visitors-label">Visiteurs</span>
+  </div>
+  <div class="visitors-count" id="visit-count">—</div>
+  <div class="visitors-sep"></div>
+  <div class="visitors-label">En ligne récemment :</div>
+  <div class="visitors-list" id="visitors-list">
+    <span style="font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(245,240,232,0.3);">Chargement...</span>
   </div>
 </div>
 
@@ -294,7 +371,76 @@ const COUNTRIES = [
   { name:"Polynésie Fr.", flag:"🇵🇫", tz:"Pacific/Tahiti", region:"Océanie", code:"PF" },
 ];
 
-let myCode = null;
+// ─── Supabase ────────────────────────────────────────────
+const SUPABASE_URL = "https://dphtlyrjgzgctcjzbzaf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_ydPg-wmTyUhq9fweC_JwUw_WFZx1nf_";
+
+async function sbFetch(path, options = {}) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "return=minimal",
+      ...options.headers
+    }
+  });
+}
+
+async function registerVisit() {
+  if (!myCode) return;
+  const match = COUNTRIES.find(c => c.code === myCode);
+  const flag = match ? match.flag : "🌍";
+  await sbFetch("visitors", {
+    method: "POST",
+    body: JSON.stringify({
+      country: myName,
+      country_code: myCode,
+      flag: flag,
+      timezone: myTz
+    })
+  });
+}
+
+async function loadVisitors() {
+  try {
+    // Total count
+    const countRes = await sbFetch("visitors?select=id", {
+      headers: { "Prefer": "count=exact" }
+    });
+    const total = countRes.headers.get("content-range")?.split("/")?.[1] || "0";
+    document.getElementById("visit-count").textContent = Number(total).toLocaleString("fr-FR");
+
+    // Recent unique countries (last 50 visits)
+    const res = await sbFetch("visitors?select=flag,country,country_code&order=visited_at.desc&limit=50");
+    const data = await res.json();
+
+    // Deduplicate by country_code
+    const seen = new Set();
+    const unique = data.filter(v => {
+      if (seen.has(v.country_code)) return false;
+      seen.add(v.country_code);
+      return true;
+    }).slice(0, 15);
+
+    const list = document.getElementById("visitors-list");
+    if (!unique.length) {
+      list.innerHTML = `<span style="font-family:'DM Mono',monospace;font-size:0.68rem;color:rgba(245,240,232,0.3);">Aucun visiteur encore</span>`;
+      return;
+    }
+    list.innerHTML = unique.map(v => `
+      <div class="visitor-chip">
+        <span class="chip-flag">${v.flag}</span>
+        <span>${v.country}</span>
+      </div>
+    `).join("");
+  } catch(e) {
+    console.error("Supabase error:", e);
+  }
+}
+
+
 let myTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 let myName = "";
 let currentFilter = "all";
@@ -342,7 +488,7 @@ async function detectLocation() {
     myCode = data.country_code;
     myTz = data.timezone || myTz;
     myName = data.country_name || "";
-    document.getElementById("my-location").innerHTML = `📍 Vous êtes ici : <strong>${myName}</strong>`;
+    document.getElementById("my-location").innerHTML = `📍 Vous êtes en : <strong>${myName}</strong>`;
   } catch {
     document.getElementById("my-location").innerHTML = `📍 <strong>${myTz}</strong>`;
   }
@@ -426,7 +572,10 @@ document.getElementById("search").addEventListener("input", e => {
   await detectLocation();
   updateHero();
   buildGrid();
+  await registerVisit();
+  await loadVisitors();
   setInterval(tick, 1000);
+  setInterval(loadVisitors, 15000); // refresh visitors every 15s
 })();
 </script>
 </body>
